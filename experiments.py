@@ -15,6 +15,8 @@ import os
 
 np.random.seed(0)
 # np.set_printoptions(threshold=np.nan)
+# set_device('cpp_standalone', build_on_run=False)
+
 
 class Experiment0:
 
@@ -23,7 +25,7 @@ class Experiment0:
 		print("Experiment 0: Learing XOR with rate coded input")
 
 		self.args = args
-		
+
 		self.define_network()
 		self.restore_model()
 
@@ -31,6 +33,8 @@ class Experiment0:
 			self.train()
 		else:
 			self.test()
+
+		# device.build(directory='bin', compile=True, run=True, debug=False)
 
 	def define_network(self):
 
@@ -125,12 +129,11 @@ class Experiment0:
 
 			for i in range(1, self.args.nepochs+1):
 
-				print("Epoch: {eno:d}".format(eno=i))
 
 				np.random.shuffle(order)
 				for j, index in enumerate(order):
 
-					print("\tBatch: {bno:d}".format(bno=j))
+					print("Epoch: {eno:d}.{bno}".format(eno=i, bno=j))
 
 					indices, times = generate_input_spikes(30*np.sum(x[index]), 40*Hz, 500*ms)
 					times += i*2000*ms + j*500*ms
@@ -150,11 +153,26 @@ class Experiment0:
 
 	def test(self):
 
-		P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
-		spike_mon = SpikeMonitor(P)
+		# import pdb; pdb.set_trace()
 
-		run(100*ms)
+		print("Testing")
+		self.set_plasticity(False)
 
-		import pdb; pdb.set_trace()
+		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+		y = np.array([0, 1, 1, 0])
+		rate = np.zeros(y.shape[0])*Hz
 
-		print(spike_mon.i, spike_mon.t)
+		for j, _input in enumerate(x):
+
+			print("Starting Time: ", self.network.t)
+
+			indices, times = generate_input_spikes(30*np.sum(_input), 40*Hz, 500*ms)
+			if (_input == [0, 1]).all():
+				indices += 30
+
+			self.ilayer.set_spikes(indices, times)
+			self.network.run(500*ms)
+
+			rate[j] = self.kmon_olayer.num_spikes / (500*ms)
+
+		print(rate)
