@@ -6,8 +6,8 @@ from neurons import Vr, Vt, tau
 
 from synapses import model_stdp, action_prespike_stdp, action_postspike_stdp
 from synapses import model_mstdp, action_prespike_mstdp, action_postspike_mstdp
-from synapses import Apre, Apost, taupre, taupost, tauz
-from synapses import gamma0, gamma1, gamma2
+# from synapses import Apre, Apost, taupre, taupost, tauz
+# from synapses import gamma0, gamma1, gamma2
 
 from utils import generate_input_spikes
 
@@ -17,7 +17,19 @@ import os
 # np.set_printoptions(threshold=np.nan)
 # set_device('cpp_standalone', build_on_run=False)
 
-class Experiment0:
+Apre = 1
+Apost = -1
+taupre = 20*ms
+taupost = 20*ms
+
+tauz = 25*ms
+
+gamma0 = 0.2 * mV
+gamma1 = 0.01 * mV
+gamma2 = 0.625 * mV
+
+
+class Experiment1:
 
 	def __init__(self, args):
 
@@ -30,7 +42,7 @@ class Experiment0:
 			print(" Warning: Consider setting seed to ensure reproducibility")
 		defaultclock.dt = 1*ms
 		
-		print("Experiment 0: Learing XOR with rate coded input")
+		print("Experiment 1: Learing XOR with temporally coded input")
 
 		self.args = args
 
@@ -46,8 +58,8 @@ class Experiment0:
 
 	def define_network(self):
 
-		self.ilayer = SpikeGeneratorGroup(60, [], []*ms)
-		self.hlayer = NeuronGroup(60, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
+		self.ilayer = SpikeGeneratorGroup(2, [], []*ms)
+		self.hlayer = NeuronGroup(20, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
 		self.olayer = NeuronGroup(1, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
 
 		self.sih = Synapses(self.ilayer, self.hlayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
@@ -96,22 +108,22 @@ class Experiment0:
 
 	def set_synapse_bounds(self):
 
-		self.sih.wmin = -5*mV
-		self.sih.wmax = 5*mV
+		self.sih.wmin = -10*mV
+		self.sih.wmax = 10*mV
 
-		self.sho.wmin = -5*mV
-		self.sho.wmax = 5*mV
+		self.sho.wmin = 0*mV
+		self.sho.wmax = 10*mV
 		
 		# self.sih.wmin = 0*mV
 		# self.sho.wmin = 0*mV
 
 		# set half inhibitory and half excitatory for first layer
-		inhib = np.random.choice(30, 15, replace=False)
-		inhib = np.concatenate([inhib, 30 + np.random.choice(30, 15, replace=False)], axis=0)
-		extit = np.array( list(set(np.arange(60)).difference(set(inhib))) )
+		# inhib = np.random.choice(30, 15, replace=False)
+		# inhib = np.concatenate([inhib, 30 + np.random.choice(30, 15, replace=False)], axis=0)
+		# extit = np.array( list(set(np.arange(60)).difference(set(inhib))) )
 
-		self.sih.wmin[extit, :] = 0*mV
-		self.sih.wmax[inhib, :] = 0*mV
+		# self.sih.wmin[extit, :] = 0*mV
+		# self.sih.wmax[inhib, :] = 0*mV
 
 	def initialize_weights(self):
 
@@ -120,8 +132,8 @@ class Experiment0:
 		# w1 = np.random.uniform(size=60*60)
 		# w2 = np.random.uniform(size=60*1)
 
-		w1 = (np.clip(np.random.randn(60*60), -1, 1)+1)/2
-		w2 = (np.clip(np.random.randn(60*1), -1, 1)+1)/2
+		w1 = (np.clip(np.random.randn(2*20), -1, 1)+1)/2
+		w2 = (np.clip(np.random.randn(20*1), -1, 1)+1)/2
 
 		self.sih.w = (self.sih.wmax-self.sih.wmin) * w1 + self.sih.wmin
 		self.sho.w = (self.sho.wmax-self.sho.wmin) * w2 + self.sho.wmin
@@ -147,6 +159,16 @@ class Experiment0:
 		self.network.store(filename=self.args.model)
 		print("Saved Model in {}".format(self.args.model))
 
+	def gen_zero_one_rep(self, period):
+
+		res = defaultclock.dt
+		npoints = int( period / res )
+
+		zero_rep = np.random.choice(npoints, 50, replace=False)
+		one_rep = np.random.choice(npoints, 50, replace=False)
+
+		return np.stack([zero_rep, one_rep], axis=0) * res
+
 	def train(self):
 
 		# import pdb; pdb.set_trace()
@@ -155,6 +177,8 @@ class Experiment0:
 		self.set_plasticity(True)
 		# self.set_plasticity(False)
 
+		rep01 = self.gen_zero_one_rep(500*ms)
+
 		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 		y = np.array([0, 1, 1, 0])
 
@@ -162,6 +186,7 @@ class Experiment0:
 
 		try:
 
+			indices = np.concatenate( [np.zeros(rep01[0].size), np.ones(rep01[1].size)], axis=0 )
 			for i in range(1, self.args.nepochs+1):
 
 				print("Epoch: {eno:d}".format(eno=i))
@@ -169,11 +194,8 @@ class Experiment0:
 				np.random.shuffle(order)
 				for j, index in enumerate(order):
 
-					indices, times = generate_input_spikes(30*np.sum(x[index]), 40*Hz, 500*ms)
+					times = np.reshape( rep01[x[index]], (-1))		
 					times += self.network.t
-					# times += (i-1)*2000*ms + j*500*ms
-					if (x[index] == [0, 1]).all():
-						indices += 30
 
 					# if self.args.verbose:
 					# 	print(" .{} Spike Range: {}/{}".format(j, np.min(times) if times.size != 0 else None, np.max(times) if times.size != 0 else None))
@@ -181,7 +203,7 @@ class Experiment0:
 
 					# import pdb; pdb.set_trace()
 
-					self.ilayer.set_spikes(indices, times, sorted=True)
+					self.ilayer.set_spikes(indices, times, sorted=False)
 					self.hlayer.r = y[index]*2-1
 					self.olayer.r = y[index]*2-1
 
@@ -208,17 +230,21 @@ class Experiment0:
 		print("Testing")
 		self.set_plasticity(False)
 
+		rep01 = self.gen_zero_one_rep(500*ms)
+
+		if self.args.verbose:
+			print(rep01)
+
 		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 		y = np.array([0, 1, 1, 0])
 		rate = np.zeros(y.shape[0])*Hz
 
+		indices = np.concatenate( [np.zeros(rep01[0].size), np.ones(rep01[1].size)], axis=0 )
 		for j, _input in enumerate(x):
 			start = self.network.t
 
-			indices, times = generate_input_spikes(30*np.sum(_input), 40*Hz, 500*ms)
+			times = np.reshape( rep01[_input], (-1))		
 			times += start
-			if (_input == [0, 1]).all():
-				indices += 30
 
 			self.ilayer.set_spikes(indices, times)
 			self.network.run(500*ms)

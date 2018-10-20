@@ -2,16 +2,16 @@
 from brian2.units import *
 
 # pre -> + and post -> -
-Apre = 1.5
-Apost = -1
-taupre = 20*ms
-taupost = 20*ms
+# Apre = 1
+# Apost = -1
+# taupre = 20*ms
+# taupost = 20*ms
 
-tauz = 25*ms
+# tauz = 25*ms
 
-gamma0 = 0.2 * mV
-gamma1 = 0.4 * mV
-gamma2 = 0.625 * mV
+# gamma0 = 0.2 * mV
+# gamma1 = 0.1 * mV
+# gamma2 = 0.625 * mV
 
 model_stdp = '''
 plastic : boolean (shared)

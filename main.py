@@ -1,7 +1,8 @@
 
-from experiments import *
-import os
+from exp0 import Experiment0
+from exp1 import Experiment1
 
+import os
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=None,
@@ -29,6 +30,8 @@ def main(args):
 
 	if args.conf == 0:
 		Experiment0(args)
+	elif args.conf == 1:
+		Experiment1(args)
 	else:
 		print("Configuration not available: {}".format(args.conf))
 		sys.exit(1)
