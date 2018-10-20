@@ -6,6 +6,7 @@ from neurons import Vr, Vt, tau
 
 from synapses import model_stdp, action_prespike_stdp, action_postspike_stdp
 from synapses import model_mstdp, action_prespike_mstdp, action_postspike_mstdp
+from synapses import model_mstdpet, action_prespike_mstdpet, action_postspike_mstdpet
 # from synapses import Apre, Apost, taupre, taupost, tauz
 # from synapses import gamma0, gamma1, gamma2
 
@@ -26,7 +27,7 @@ tauz = 25*ms
 
 gamma0 = 0.2 * mV
 gamma1 = 0.01 * mV
-gamma2 = 0.625 * mV
+gamma2 = 0.25 * mV
 
 
 class Experiment1:
@@ -62,8 +63,12 @@ class Experiment1:
 		self.hlayer = NeuronGroup(20, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
 		self.olayer = NeuronGroup(1, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
 
-		self.sih = Synapses(self.ilayer, self.hlayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
-		self.sho = Synapses(self.hlayer, self.olayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
+		if self.args.rule == "mstdp":
+			self.sih = Synapses(self.ilayer, self.hlayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
+			self.sho = Synapses(self.hlayer, self.olayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
+		else:
+			self.sih = Synapses(self.ilayer, self.hlayer, model=model_mstdpet, on_pre=action_prespike_mstdpet, on_post=action_postspike_mstdpet)
+			self.sho = Synapses(self.hlayer, self.olayer, model=model_mstdpet, on_pre=action_prespike_mstdpet, on_post=action_postspike_mstdpet)
 
 		self.sih.connect()
 		self.sho.connect()

@@ -13,6 +13,8 @@ parser.add_argument('--test', type=int, required=True,
                     help='Train vs Test')
 parser.add_argument('--model', type=str, required=True,
                     help='Model Parameters File')
+parser.add_argument('--rule', type=str, default="mstdp",
+                    help='Configuration Identifier')
 parser.add_argument('--nepochs', type=int, default=20,
                     help='Number epochs to train for')
 parser.add_argument('--nepochs_per_save', type=int, default=20,
@@ -27,6 +29,8 @@ def main(args):
 	# create savedmodels
 	if not os.path.isdir(os.path.dirname(args.model)):
 		os.mkdir(os.path.dirname(args.model))
+
+	assert args.rule in ["mstdp", "mstdpet"]
 
 	if args.conf == 0:
 		Experiment0(args)

@@ -62,23 +62,23 @@ w = clip( w + int(plastic)*gamma1*r_post*Ppre, wmin, wmax)
 # Ppost += Apost
 # w = clip( w + gamma1*r_post*Ppre, wmin, wmax)
 
-# model_mstdpet = '''
-# plastic : boolean (shared)
-# w : volt
-# wmin : volt
-# wmax : volt
-# dz/dt = int(plastic)*-z/tauz : 1 (event-driven)
-# dPpre/dt = int(plastic)*-Ppre/taupre : 1 (event-driven)
-# dPpost/dt = int(plastic)*-Ppost/taupost : 1 (event-driven)
-# '''
-# action_prespike_mstdpet = '''
-# v_post += w
-# Ppre += int(plastic)*Apre
-# z += int(plastic)*Ppost
-# w = clip( w + int(plastic)*gamma2*r_post*z, wmin, wmax)
-# '''
-# action_postspike_mstdpet = '''
-# Ppost += int(plastic)*Apost
-# z += int(plastic)*Ppre
-# w = clip( w + int(plastic)*gamma2*r_post*z, wmin, wmax)
-# '''
+model_mstdpet = '''
+plastic : boolean (shared)
+w : volt
+wmin : volt
+wmax : volt
+dz/dt = int(plastic)*-z/tauz : 1 (event-driven)
+dPpre/dt = int(plastic)*-Ppre/taupre : 1 (event-driven)
+dPpost/dt = int(plastic)*-Ppost/taupost : 1 (event-driven)
+'''
+action_prespike_mstdpet = '''
+v_post += w
+Ppre += int(plastic)*Apre
+z += int(plastic)*Ppost
+w = clip( w + int(plastic)*gamma2*r_post*z, wmin, wmax)
+'''
+action_postspike_mstdpet = '''
+Ppost += int(plastic)*Apost
+z += int(plastic)*Ppre
+w = clip( w + int(plastic)*gamma2*r_post*z, wmin, wmax)
+'''
