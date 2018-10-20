@@ -1,27 +1,35 @@
 
 from brian2 import *
 
-from neurons import IF, IF_out
+from neurons import IF, IF_m
 from neurons import Vr, Vt, tau
 
 from synapses import model_stdp, action_prespike_stdp, action_postspike_stdp
 from synapses import model_mstdp, action_prespike_mstdp, action_postspike_mstdp
-from synapses import Apre, Apost, taupre, taupost, gamma, tauz
+from synapses import Apre, Apost, taupre, taupost, tauz
+from synapses import gamma0, gamma1, gamma2
 
 from utils import generate_input_spikes
 
 import matplotlib.pyplot as plt
 import os
 
-np.random.seed(0)
 # np.set_printoptions(threshold=np.nan)
 # set_device('cpp_standalone', build_on_run=False)
-
 
 class Experiment0:
 
 	def __init__(self, args):
 
+
+		if args.seed is not None:
+			np.random.seed(args.seed)
+			seed(args.seed)
+			print(" Info: Seed set to {}".format(args.seed))
+		else:
+			print(" Warning: Consider setting seed to ensure reproducibility")
+		defaultclock.dt = 1*ms
+		
 		print("Experiment 0: Learing XOR with rate coded input")
 
 		self.args = args
@@ -38,19 +46,23 @@ class Experiment0:
 
 	def define_network(self):
 
-		self.ilayer = ilayer = SpikeGeneratorGroup(60, [], []*ms)
-		self.hlayer = NeuronGroup(60, IF, threshold='v>Vt', reset='v=Vr', method='exact')
-		self.olayer = NeuronGroup(1, IF_out, threshold='v>Vt', reset='v=Vr', method='exact')
+		self.ilayer = SpikeGeneratorGroup(60, [], []*ms)
+		self.hlayer = NeuronGroup(60, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
+		self.olayer = NeuronGroup(1, IF_m, threshold='v>Vt', reset='v=Vr', method='linear')
 
-		self.sih = Synapses(ilayer, self.hlayer, model=model_stdp, on_pre=action_prespike_stdp)
-		self.sho = Synapses(self.hlayer, self.olayer, model=model_mstdp, on_pre=action_prespike_mstdp)
+		self.sih = Synapses(self.ilayer, self.hlayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
+		self.sho = Synapses(self.hlayer, self.olayer, model=model_mstdp, on_pre=action_prespike_mstdp, on_post=action_postspike_mstdp)
 
 		self.sih.connect()
 		self.sho.connect()
 
+		self.smon_sih = StateMonitor(self.sih, 'w', record=True)
+		self.smon_sho = StateMonitor(self.sho, 'w', record=True)
+
 		self.smon_hlayer = StateMonitor(self.hlayer, 'v', record=True)
 		self.smon_olayer = StateMonitor(self.olayer, 'v', record=True)
 
+		self.kmon_ilayer = SpikeMonitor(self.ilayer)
 		self.kmon_hlayer = SpikeMonitor(self.hlayer)
 		self.kmon_olayer = SpikeMonitor(self.olayer)
 
@@ -60,14 +72,26 @@ class Experiment0:
 				self.olayer,
 				self.sih,
 				self.sho,
-				self.smon_hlayer,
-				self.smon_olayer,
-				self.kmon_hlayer,
 				self.kmon_olayer,
 			)
 
+		if self.args.verbose:
+			self.network.add(
+					self.smon_sih,
+					self.smon_sho,
+					self.smon_hlayer,
+					self.smon_olayer,
+					self.kmon_hlayer,
+
+					self.kmon_ilayer,
+					
+					# self.smon_olayer_r,
+				)
+
 		self.hlayer.v = Vr
 		self.olayer.v = Vr
+		self.hlayer.r = 1
+		self.olayer.r = 1
 		self.set_synapse_bounds()
 
 	def set_synapse_bounds(self):
@@ -77,6 +101,9 @@ class Experiment0:
 
 		self.sho.wmin = -5*mV
 		self.sho.wmax = 5*mV
+		
+		# self.sih.wmin = 0*mV
+		# self.sho.wmin = 0*mV
 
 		# set half inhibitory and half excitatory for first layer
 		inhib = np.random.choice(30, 15, replace=False)
@@ -89,16 +116,23 @@ class Experiment0:
 	def initialize_weights(self):
 
 		print("Initializing weights at random")
-		w1 = np.random.uniform(size=60*60)
-		w2 = np.random.uniform(size=60*1)
+
+		# w1 = np.random.uniform(size=60*60)
+		# w2 = np.random.uniform(size=60*1)
+
+		w1 = (np.clip(np.random.randn(60*60), -1, 1)+1)/2
+		w2 = (np.clip(np.random.randn(60*1), -1, 1)+1)/2
 
 		self.sih.w = (self.sih.wmax-self.sih.wmin) * w1 + self.sih.wmin
 		self.sho.w = (self.sho.wmax-self.sho.wmin) * w2 + self.sho.wmin
 
-	def set_plasticity(self, plastic=True):
+	def set_plasticity(self, plasticity=True):
 
-		self.sih.plastic = plastic
-		self.sho.plastic = plastic
+		self.sih.plastic = plasticity
+		self.sho.plastic = plasticity
+
+		# self.sih.plastic = False
+		# self.sho.plastic = False
 
 	def restore_model(self):
 
@@ -119,6 +153,7 @@ class Experiment0:
 
 		print("Training")
 		self.set_plasticity(True)
+		# self.set_plasticity(False)
 
 		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 		y = np.array([0, 1, 1, 0])
@@ -129,21 +164,36 @@ class Experiment0:
 
 			for i in range(1, self.args.nepochs+1):
 
+				print("Epoch: {eno:d}".format(eno=i))
 
 				np.random.shuffle(order)
 				for j, index in enumerate(order):
 
-					print("Epoch: {eno:d}.{bno}".format(eno=i, bno=j))
-
 					indices, times = generate_input_spikes(30*np.sum(x[index]), 40*Hz, 500*ms)
-					times += i*2000*ms + j*500*ms
+					times += self.network.t
+					# times += (i-1)*2000*ms + j*500*ms
 					if (x[index] == [0, 1]).all():
 						indices += 30
 
-					self.ilayer.set_spikes(indices, times)
+					# if self.args.verbose:
+					# 	print(" .{} Spike Range: {}/{}".format(j, np.min(times) if times.size != 0 else None, np.max(times) if times.size != 0 else None))
+					# 	print(" .{} Indices Range: {}/{}".format(j, np.min(indices) if indices.size != 0 else None, np.max(indices) if indices.size != 0 else None))
+
+					# import pdb; pdb.set_trace()
+
+					self.ilayer.set_spikes(indices, times, sorted=True)
+					self.hlayer.r = y[index]*2-1
 					self.olayer.r = y[index]*2-1
 
 					self.network.run(500*ms)
+
+				if self.args.verbose:
+					print("Total Spikes: {} {} {}".format(self.kmon_ilayer.num_spikes, self.kmon_hlayer.num_spikes, self.kmon_olayer.num_spikes))
+					print("Max/Min Weights: {}/{} {}/{}".format(np.min(self.smon_sih.w[:, -1]), np.max(self.smon_sih.w[:, -1]), np.min(self.smon_sho.w[:, -1]), np.max(self.smon_sho.w[:, -1])))
+					print("H Voltage:", np.mean(self.smon_hlayer.v[:, -20000:]))
+					print("Output Voltage:", np.mean(self.smon_olayer.v[0, -20000:]))
+
+				# import pdb; pdb.set_trace()
 
 				if i % self.args.nepochs_per_save == 0:
 					self.save_model()
@@ -163,16 +213,24 @@ class Experiment0:
 		rate = np.zeros(y.shape[0])*Hz
 
 		for j, _input in enumerate(x):
-
-			print("Starting Time: ", self.network.t)
+			start = self.network.t
 
 			indices, times = generate_input_spikes(30*np.sum(_input), 40*Hz, 500*ms)
+			times += start
 			if (_input == [0, 1]).all():
 				indices += 30
 
 			self.ilayer.set_spikes(indices, times)
 			self.network.run(500*ms)
 
-			rate[j] = self.kmon_olayer.num_spikes / (500*ms)
+			end = self.network.t
+
+			# import pdb; pdb.set_trace()
+
+			spikes = self.kmon_olayer.t
+			spikes = spikes[spikes <= end]
+			spikes = spikes[start <= spikes]
+
+			rate[j] =  spikes.size / (500*ms)
 
 		print(rate)
