@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# rm savedmodels/exp1_sim1
+rm savedmodels/exp0_mstdp_sim2
 
 # python2 main.py \
 python main.py \
 	--conf 0 \
 	--rule mstdp \
 	--test 0 \
-	--model savedmodels/exp0_mstdp_sim1 \
-	--nepochs 200 \
-	--verbose True \
-	--seed 10 \
+	--model savedmodels/exp0_mstdp_sim2 \
+	--nepochs 400 \
+	--seed 0 \
 	--dummy 0
+	# --verbose True \

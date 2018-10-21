@@ -76,10 +76,10 @@ class Experiment0:
 		self.smon_sih = StateMonitor(self.sih, 'w', record=True)
 		self.smon_sho = StateMonitor(self.sho, 'w', record=True)
 
-		self.smon_hlayer = StateMonitor(self.hlayer, 'v', record=True)
+		# self.smon_hlayer = StateMonitor(self.hlayer, 'v', record=True)
 		self.smon_olayer = StateMonitor(self.olayer, 'v', record=True)
 
-		self.kmon_ilayer = SpikeMonitor(self.ilayer)
+		# self.kmon_ilayer = SpikeMonitor(self.ilayer)
 		self.kmon_hlayer = SpikeMonitor(self.hlayer)
 		self.kmon_olayer = SpikeMonitor(self.olayer)
 
@@ -96,11 +96,13 @@ class Experiment0:
 			self.network.add(
 					self.smon_sih,
 					self.smon_sho,
-					self.smon_hlayer,
+
+					# self.smon_hlayer,
+
 					self.smon_olayer,
 					self.kmon_hlayer,
 
-					self.kmon_ilayer,
+					# self.kmon_ilayer,
 					
 					# self.smon_olayer_r,
 				)
@@ -205,9 +207,10 @@ class Experiment0:
 					self.network.run(500*ms)
 
 				if self.args.verbose:
-					print("Total Spikes: {} {} {}".format(self.kmon_ilayer.num_spikes, self.kmon_hlayer.num_spikes, self.kmon_olayer.num_spikes))
+					# print("Total Spikes: {} {} {}".format(self.kmon_ilayer.num_spikes, self.kmon_hlayer.num_spikes, self.kmon_olayer.num_spikes))
+					print("Total Spikes: {} {}".format(self.kmon_hlayer.num_spikes, self.kmon_olayer.num_spikes))
 					print("Max/Min Weights: {}/{} {}/{}".format(np.min(self.smon_sih.w[:, -1]), np.max(self.smon_sih.w[:, -1]), np.min(self.smon_sho.w[:, -1]), np.max(self.smon_sho.w[:, -1])))
-					print("H Voltage:", np.mean(self.smon_hlayer.v[:, -20000:]))
+					# print("H Voltage:", np.mean(self.smon_hlayer.v[:, -20000:]))
 					print("Output Voltage:", np.mean(self.smon_olayer.v[0, -20000:]))
 
 				# import pdb; pdb.set_trace()
