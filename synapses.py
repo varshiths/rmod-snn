@@ -82,3 +82,10 @@ Ppost += int(plastic)*Apost
 z += int(plastic)*Ppre
 w = clip( w + int(plastic)*gamma2*r_post*z, wmin, wmax)
 '''
+
+ri = '''
+k_post += 1/tauv
+'''
+
+action_postspike_mstdp_ri = action_postspike_mstdp + ri
+action_postspike_mstdpet_ri = action_postspike_mstdpet + ri

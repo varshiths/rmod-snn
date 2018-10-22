@@ -1,8 +1,10 @@
 
 from exp0 import Experiment0
 from exp1 import Experiment1
+from exp2 import Experiment2
 
 import os
+import sys
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=None,
@@ -36,6 +38,8 @@ def main(args):
 		Experiment0(args)
 	elif args.conf == 1:
 		Experiment1(args)
+	elif args.conf == 2:
+		Experiment2(args)
 	else:
 		print("Configuration not available: {}".format(args.conf))
 		sys.exit(1)

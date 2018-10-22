@@ -228,29 +228,39 @@ class Experiment0:
 		print("Testing")
 		self.set_plasticity(False)
 
+		nexp=20
+
 		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 		y = np.array([0, 1, 1, 0])
-		rate = np.zeros(y.shape[0])*Hz
+		rate = np.zeros((nexp, y.shape[0]))*Hz
 
-		for j, _input in enumerate(x):
-			start = self.network.t
+		for q in range(nexp):
 
-			indices, times = generate_input_spikes(30*np.sum(_input), 40*Hz, 500*ms)
-			times += start
-			if (_input == [0, 1]).all():
-				indices += 30
+			print("Run {}".format(q))
 
-			self.ilayer.set_spikes(indices, times)
-			self.network.run(500*ms)
+			for j, _input in enumerate(x):
+				start = self.network.t
 
-			end = self.network.t
+				indices, times = generate_input_spikes(30*np.sum(_input), 40*Hz, 500*ms)
+				times += start
+				if (_input == [0, 1]).all():
+					indices += 30
 
-			# import pdb; pdb.set_trace()
+				self.ilayer.set_spikes(indices, times)
+				self.network.run(500*ms)
 
-			spikes = self.kmon_olayer.t
-			spikes = spikes[spikes <= end]
-			spikes = spikes[start <= spikes]
+				end = self.network.t
 
-			rate[j] =  spikes.size / (500*ms)
+				# import pdb; pdb.set_trace()
 
-		print(rate)
+				spikes = self.kmon_olayer.t
+				spikes = spikes[spikes <= end]
+				spikes = spikes[start <= spikes]
+
+				rate[q, j] =  spikes.size / (500*ms)
+
+			print("Rate", rate[q])
+
+		# print(rate)
+		print("Mean : ", np.mean(rate, axis=0))
+		print("Std  : ", np.std(rate, axis=0))
