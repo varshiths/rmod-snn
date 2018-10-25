@@ -11,7 +11,7 @@ from synapses import action_postspike_mstdp_ri, action_postspike_mstdpet_ri
 # from synapses import Apre, Apost, taupre, taupost, tauz
 # from synapses import gamma0, gamma1, gamma2
 
-from utils import generate_input_spikes, rms
+from utils import generate_input_spikes, rms, plot_cum_reward
 
 import matplotlib.pyplot as plt
 import os
@@ -149,9 +149,11 @@ class Experiment2:
 
 		self.set_plasticity(False)
 		# commenced = False
-		doter = np.ones(self.args.nepochs)*-1*Hz
 		self.network.run(defaultclock.dt*50)
 		self.set_plasticity(True)
+
+		doter = np.ones(self.args.nepochs)*-1*Hz
+		rewards = np.zeros(self.args.nepochs)
 
 		try:
 
@@ -163,8 +165,8 @@ class Experiment2:
 				kt_1 = self.olayer.k
 				dot_1 = rms(self.olayer.k, orates)
 
-				self.network.run(defaultclock.dt)
-				# self.network.run(defaultclock.dt*100)
+				# self.network.run(defaultclock.dt)
+				self.network.run(defaultclock.dt*100)
 				
 				kt = self.olayer.k
 				dot = rms(self.olayer.k, orates)
@@ -175,6 +177,7 @@ class Experiment2:
 				# 	commenced = False
 				# 	self.set_plasticity(True)
 
+				rewards[i-1] = np.sign(dot_1-dot)
 				doter[i-1] = dot
 
 				if self.args.verbose:
@@ -184,8 +187,10 @@ class Experiment2:
 					# import pdb; pdb.set_trace()
 					print("Synapses:", np.mean(self.smon_sio.w[:, -1]))
 
-				if i % (self.args.nepochs_per_save*100) == 0:
-					self.save_model()
+				# if i % (self.args.nepochs_per_save*100) == 0:
+				# 	self.save_model()
 			
+			plot_cum_reward(rewards, doter, "outputs/exp{}_{}_rs".format(2, self.args.rule), "outputs/exp{}_{}_ds".format(2, self.args.rule))
+
 		except KeyboardInterrupt as e:
 			print("Training Interrupted. Refer to model saved in {}".format(self.args.model))

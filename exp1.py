@@ -10,7 +10,7 @@ from synapses import model_mstdpet, action_prespike_mstdpet, action_postspike_ms
 # from synapses import Apre, Apost, taupre, taupost, tauz
 # from synapses import gamma0, gamma1, gamma2
 
-from utils import generate_input_spikes
+from utils import generate_input_spikes, plot_rates
 
 import matplotlib.pyplot as plt
 import os
@@ -234,34 +234,38 @@ class Experiment1:
 
 		print("Testing")
 		self.set_plasticity(False)
+		rate = np.zeros((self.args.nepochs, 4))*Hz
 
-		rep01 = self.gen_zero_one_rep(500*ms)
+		for q in range(self.args.nepochs):
+			
+			rep01 = self.gen_zero_one_rep(500*ms)
 
-		if self.args.verbose:
-			print(rep01)
+			# if self.args.verbose:
+			# 	print(rep01)
 
-		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-		y = np.array([0, 1, 1, 0])
-		rate = np.zeros(y.shape[0])*Hz
+			x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+			y = np.array([0, 1, 1, 0])
 
-		indices = np.concatenate( [np.zeros(rep01[0].size), np.ones(rep01[1].size)], axis=0 )
-		for j, _input in enumerate(x):
-			start = self.network.t
+			indices = np.concatenate( [np.zeros(rep01[0].size), np.ones(rep01[1].size)], axis=0 )
+			for j, _input in enumerate(x):
+				start = self.network.t
 
-			times = np.reshape( rep01[_input], (-1))		
-			times += start
+				times = np.reshape( rep01[_input], (-1))		
+				times += start
 
-			self.ilayer.set_spikes(indices, times)
-			self.network.run(500*ms)
+				self.ilayer.set_spikes(indices, times)
+				self.network.run(500*ms)
 
-			end = self.network.t
+				end = self.network.t
 
-			# import pdb; pdb.set_trace()
+				# import pdb; pdb.set_trace()
 
-			spikes = self.kmon_olayer.t
-			spikes = spikes[spikes <= end]
-			spikes = spikes[start <= spikes]
+				spikes = self.kmon_olayer.t
+				spikes = spikes[spikes <= end]
+				spikes = spikes[start <= spikes]
 
-			rate[j] =  spikes.size / (500*ms)
+				rate[q, j] =  float(spikes.size) / (500.0*ms)
 
-		print(rate)
+			print("Rates:", rate[q])
+
+		plot_rates(rate, "outputs/exp{}_{}_rates.png".format(1, self.args.rule))

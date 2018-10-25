@@ -10,7 +10,7 @@ from synapses import model_mstdpet, action_prespike_mstdpet, action_postspike_ms
 # from synapses import Apre, Apost, taupre, taupost, tauz
 # from synapses import gamma0, gamma1, gamma2
 
-from utils import generate_input_spikes
+from utils import generate_input_spikes, plot_rates
 
 import matplotlib.pyplot as plt
 import os
@@ -27,7 +27,7 @@ tauz = 25*ms
 
 gamma0 = 0.2 * mV
 gamma1 = 0.1 * mV
-gamma2 = 0.625 * mV
+gamma2 = 0.8 * mV
 
 
 class Experiment0:
@@ -228,15 +228,13 @@ class Experiment0:
 		print("Testing")
 		self.set_plasticity(False)
 
-		nexp=20
-
 		x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 		y = np.array([0, 1, 1, 0])
-		rate = np.zeros((nexp, y.shape[0]))*Hz
+		rate = np.zeros((self.args.nepochs, y.shape[0]))*Hz
 
-		for q in range(nexp):
+		for q in range(self.args.nepochs):
 
-			print("Run {}".format(q))
+			# print("Run {}".format(q))
 
 			for j, _input in enumerate(x):
 				start = self.network.t
@@ -261,6 +259,4 @@ class Experiment0:
 
 			print("Rate", rate[q])
 
-		# print(rate)
-		print("Mean : ", np.mean(rate, axis=0))
-		print("Std  : ", np.std(rate, axis=0))
+		plot_rates(rate, "outputs/exp{}_{}_rates.png".format(0, self.args.rule))
