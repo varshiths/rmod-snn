@@ -1,7 +1,10 @@
 
+# from exp10 import Experiment10
 from exp0 import Experiment0
 from exp1 import Experiment1
 from exp2 import Experiment2
+from exp3 import Experiment3
+from exp4 import Experiment4
 
 import os
 import sys
@@ -34,12 +37,19 @@ def main(args):
 
 	assert args.rule in ["mstdp", "mstdpet"]
 
+	# if args.conf == 10:
+		# Experiment10(args)
+	# elif args.conf == 0:
 	if args.conf == 0:
 		Experiment0(args)
 	elif args.conf == 1:
 		Experiment1(args)
 	elif args.conf == 2:
 		Experiment2(args)
+	elif args.conf == 3:
+		Experiment3(args)
+	elif args.conf == 4:
+		Experiment4(args)
 	else:
 		print("Configuration not available: {}".format(args.conf))
 		sys.exit(1)
